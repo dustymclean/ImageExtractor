@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Download, Copy, ExternalLink, Image as ImageIcon, Loader2, AlertCircle, Check, Square, CheckSquare, Archive } from 'lucide-react';
+import { Search, Download, Copy, ExternalLink, Image as ImageIcon, Loader2, AlertCircle, Check, Square, CheckSquare, Archive, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -23,6 +23,8 @@ export default function App() {
   const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [analyzingUrl, setAnalyzingUrl] = useState<string | null>(null);
+  const [analysisResults, setAnalysisResults] = useState<Record<string, string>>({});
 
   const handleExtract = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,6 +128,24 @@ export default function App() {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(zipUrl);
     setZipping(false);
+  };
+
+  const analyzeImage = async (imageUrl: string) => {
+    setAnalyzingUrl(imageUrl);
+    try {
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to analyze image');
+      setAnalysisResults(prev => ({ ...prev, [imageUrl]: data.description }));
+    } catch (err: any) {
+      setError(`Analysis failed: ${err.message}`);
+    } finally {
+      setAnalyzingUrl(null);
+    }
   };
 
   return (
@@ -280,7 +300,15 @@ export default function App() {
                     <p className="text-xs text-zinc-400 font-mono truncate mb-3" title={img.url}>
                       {img.url}
                     </p>
-                    <div className="grid grid-cols-3 gap-2">
+                    
+                    {analysisResults[img.url] && (
+                      <div className="mb-4 p-3 bg-indigo-50 rounded-xl text-xs text-indigo-900 border border-indigo-100 italic">
+                        <Sparkles size={12} className="inline mr-1 text-indigo-500" />
+                        {analysisResults[img.url]}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-4 gap-2">
                       <button
                         onClick={() => copyToClipboard(img.url, index)}
                         className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg hover:bg-zinc-50 text-zinc-600 hover:text-indigo-600 transition-colors border border-transparent hover:border-zinc-100"
@@ -296,6 +324,15 @@ export default function App() {
                       >
                         <Download size={16} />
                         <span className="text-[10px] font-medium uppercase">Save</span>
+                      </button>
+                      <button
+                        onClick={() => analyzeImage(img.url)}
+                        disabled={analyzingUrl === img.url}
+                        className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg hover:bg-zinc-50 text-zinc-600 hover:text-indigo-600 transition-colors border border-transparent hover:border-zinc-100 disabled:opacity-50"
+                        title="Analyze with AI"
+                      >
+                        {analyzingUrl === img.url ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                        <span className="text-[10px] font-medium uppercase">AI</span>
                       </button>
                       <a
                         href={img.url}

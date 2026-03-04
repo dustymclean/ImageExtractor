@@ -2,12 +2,15 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import * as cheerio from "cheerio";
 import path from "path";
+import { Ollama } from "ollama";
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: '50mb' }));
+
+  const ollama = new Ollama({ host: process.env.OLLAMA_URL || "http://localhost:11434" });
 
   // API route to extract images
   app.post("/api/extract", async (req, res) => {
@@ -108,6 +111,35 @@ async function startServer() {
     } catch (error: any) {
       console.error("Extraction error:", error);
       res.status(500).json({ error: error.message || "Failed to extract images" });
+    }
+  });
+
+  app.post("/api/analyze", async (req, res) => {
+    const { imageUrl, prompt } = req.body;
+
+    if (!imageUrl) {
+      return res.status(400).json({ error: "Image URL is required" });
+    }
+
+    try {
+      // Fetch the image and convert to base64
+      const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) {
+        throw new Error("Failed to fetch image for analysis");
+      }
+      const arrayBuffer = await imageResponse.arrayBuffer();
+      const base64Image = Buffer.from(arrayBuffer).toString("base64");
+
+      const response = await ollama.generate({
+        model: "moondream",
+        prompt: prompt || "Describe this image in detail.",
+        images: [base64Image],
+      });
+
+      res.json({ description: response.response });
+    } catch (error: any) {
+      console.error("Analysis error:", error);
+      res.status(500).json({ error: error.message || "Failed to analyze image with Ollama" });
     }
   });
 
