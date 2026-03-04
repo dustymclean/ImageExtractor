@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Sitemaps
+Sitemap: https://ais-pre-m4cpwcyqsqlw2g3qzfcox7-60752067951.us-east1.run.app/sitemap.xml
+
+# SEO Keywords for Artists and Designers
+# Image Extractor, PDF Image Extractor, Image Text Extractor
+# Extract images from website, Download all images from URL
+# Web Image Downloader, Bulk Image Downloader

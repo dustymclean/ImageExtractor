@@ -1,0 +1,5 @@
+{
+  "name": "Image Extractor",
+  "description": "Professional tool for artists to extract images from websites, PDFs, and text. Bulk download JPG, PNG, SVG, and WEBP assets instantly.",
+  "requestFramePermissions": []
+}
